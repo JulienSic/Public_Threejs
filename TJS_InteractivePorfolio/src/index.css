@@ -1,4 +1,20 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
+:root {
+
+  --color-slate-800: oklch(27.9% 0.041 260.031);
+  --color-slate-700: oklch(37.2% 0.044 257.287);
+  --color-slate-400: oklch(70.4% 0.04 256.788);
+  --color-slate-200: oklch(96.8% 0.007 247.896);
+  --color-slate-100: oklch(96.8% 0.007 247.896);
+
+  --font-poppins: 'Poppins', sans-serif;
+}
+
+html, body {
+  background: var(--color-slate-800);
+  background: linear-gradient(180deg, var(--color-slate-700) 0%, var(--color-slate-800) 100%);
+  margin: 0;
+  height: 100dvh;
+  font-family: var(--font-poppins);
+}
