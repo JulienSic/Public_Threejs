@@ -1,7 +1,7 @@
 import { Canvas, useFrame } from '@react-three/fiber'
 import React, { useState } from 'react'
 import { ThreeMFLoader } from 'three/examples/jsm/Addons.js'
-import { Vector3 } from 'three'
+import { MathUtils, Vector3 } from 'three'
 import { Quaternion } from 'three'
 
 export default function App() {
@@ -25,28 +25,60 @@ function AnimatedBoxComponent() {
   const [rotating, setRotation] = useState(false)
   const rotatingCube = React.useRef()
 
-  const angle = 1;
+  const angle = React.useRef(0);
+  const currentSpeed = React.useRef(0); 
 
+  const rotationAxis = new Vector3(0, 1, 0);
+  const tempQuaternion = new Quaternion();
 
-  const targetRotationX = new Quaternion().setFromAxisAngle(new Vector3(1,0,0), angle);
-  const targetRotationY = new Quaternion().setFromAxisAngle(new Vector3(0,1,0), angle);
+  const wasRotating = React.useRef(false);
+  const snapTargetQuaternion = React.useRef(new Quaternion());
+
+  // const targetRotationX = new Quaternion().setFromAxisAngle(new Vector3(1,0,0), Math.PI / 2);
+  // const targetRotationY = new Quaternion().setFromAxisAngle(new Vector3(0,1,0), Math.PI / 2);
 
   const handleClick = () => {
     setActive(!active);
     setRotation(!rotating);
+
+    // Debug
+    // console.log(active);
+    // console.log(rotating);
   }
-  useFrame(({clock}) => {
+  useFrame(({clock}, delta) => {
     const targetScale = hovered ? 1.5 : 1;
     const targetPositionX = active ? -2 : 0;
-    const targetQuarternion = active ? targetRotationX : targetRotationY;
+    const targetSpeed = rotating ? 2 : 0;
+
 
     rotatingCube.current.scale.lerp(new Vector3(targetScale, targetScale, targetScale), 0.1);
 
+    currentSpeed.current = MathUtils.lerp(currentSpeed.current, targetSpeed, 0.1);
+    angle.current = currentSpeed * delta;
+
+    if (!rotating && wasRotating.current) {
+      const currentQuaternion = rotatingCube.current.quaternion;
+
+      const currentAngle = 2 * Math.atan2(currentQuaternion.y, currentQuaternion.w);
+
+      const targetAngle = Math.round(currentAngle / (Math.PI / 2)) * (Math.PI / 2);
+
+      snapTargetQuaternion.current.setFromAxisAngle(rotationAxis, targetAngle);
+    }
+
+    wasRotating.current = rotating;
+
     if (active) {
       rotatingCube.current.position.lerp(new Vector3(targetPositionX, 0, 0), 0.1);
+      if (rotating || currentSpeed.current > 0.01) {
+
+        const frameAngle = currentSpeed.current * delta;
+        tempQuaternion.setFromAxisAngle(rotationAxis, frameAngle);
       
-      rotatingCube.current.quaternion.slerp(targetQuarternion, clock.elapsedTime);
+        rotatingCube.current.quaternion.premultiply(tempQuaternion);
+      } 
     } else {
+      rotatingCube.current.quaternion.slerp(snapTargetQuaternion.current, 0.1);
       rotatingCube.current.position.lerp(new Vector3(targetPositionX, 0, 0), 0.1);
     }
   })
