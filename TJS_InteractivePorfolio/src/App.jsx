@@ -1,8 +1,8 @@
-import { Canvas, useFrame } from '@react-three/fiber'
+import { Canvas, useFrame, useLoader } from '@react-three/fiber'
 import React, { useState } from 'react'
-import { ThreeMFLoader } from 'three/examples/jsm/Addons.js'
-import { MathUtils, Vector3 } from 'three'
-import { Quaternion } from 'three'
+import { MathUtils, Vector3, Quaternion, TextureLoader } from 'three'
+import {GLTFLoader} from "three/examples/jsm/Addons.js";
+
 
 export default function App() {
   return (
@@ -24,6 +24,7 @@ function AnimatedBoxComponent() {
   const [hovered, setHover] = useState(false)
   const [rotating, setRotation] = useState(false)
   const rotatingCube = React.useRef()
+  const customModel = useLoader(GLTFLoader, '/assets/models/TJS_BasicShape.glb')
 
   const angle = React.useRef(0);
   const currentSpeed = React.useRef(0); 
