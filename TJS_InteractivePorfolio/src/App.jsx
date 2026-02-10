@@ -20,8 +20,12 @@ export default function App() {
 }
 
 function AnimatedModelComponent() {
+  // Load custom model and texture
   const customModel = useLoader(GLTFLoader, '/assets/models/TJS_BasicShape.glb')
+  const customTexture = useLoader(TextureLoader, '/assets/textures/TJS_TestTexture_BaseColor.001.png')
+  customTexture.flipY = false;
 
+  // Extract the geometry from the model
   const customGeometry = useMemo(() => {
     let geometry = null;
     customModel.scene.traverse((child) => {
@@ -37,7 +41,7 @@ function AnimatedModelComponent() {
   const [rotating, setRotation] = useState(false);
   const rotatingModel = React.useRef();
   
-  const modelScale = 0.2;
+  const modelScale = 0.3;
 
   const angle = React.useRef(0);
   const currentSpeed = React.useRef(0); 
@@ -97,6 +101,9 @@ function AnimatedModelComponent() {
     }
   })
 
+  if (!customTexture) {
+    console.warn("No Texture found in TextureLoader");
+  }
   if (!customGeometry) {
     console.warn("No geometry found in GLTFLoader");
     return (
@@ -119,7 +126,7 @@ function AnimatedModelComponent() {
         ref={rotatingModel}>
 
       <meshStandardMaterial
-      color={0xF7EC4F} 
+      map = {customTexture}
       roughness={0.6} 
       metalness={0.1} />
     </mesh>
