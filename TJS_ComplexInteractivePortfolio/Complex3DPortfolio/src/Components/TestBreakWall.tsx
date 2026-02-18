@@ -104,7 +104,10 @@ export default function TestBreakWall({ debug = false }: TestBreakWallProps) {
     return sceneClone;
   }, [customModel, debug]);
 
-  console.log(customMesh);
+
+  // DEBUG
+  //console.log(customMesh);
+
   if (!customMesh) return null;
 
 
