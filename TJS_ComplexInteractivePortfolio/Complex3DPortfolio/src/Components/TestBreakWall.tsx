@@ -1,14 +1,33 @@
-import { useLoader } from '@react-three/fiber'
-import React, {useEffect, useMemo, useRef} from 'react'
+import {useFrame, useLoader} from '@react-three/fiber'
+import React, {useEffect, useMemo, useRef, useState} from 'react'
 import {GLTFLoader} from "three/examples/jsm/loaders/GLTFLoader.js";
-import {DoubleSide, Mesh, MeshStandardMaterial} from "three";
+import {DoubleSide, Group, Mesh, MeshStandardMaterial} from "three";
 import {Pane} from "tweakpane";
 import gsap from 'gsap';
+import {useHelper} from "@react-three/drei";
+import {VertexNormalsHelper} from "three/examples/jsm/helpers/VertexNormalsHelper";
 
-export default function TestBreakWall() {
+interface TestBreakWallProps {
+  debug?: boolean;
+}
+
+export default function TestBreakWall({ debug = false }: TestBreakWallProps) {
   const customModel = useLoader(GLTFLoader, '/assets/models/TJS_TestBreakWall.glb');
   const modelScale = 0.3;
-  const breakWall = React.useRef();
+
+  // Setting up targets
+  const groupRef = useRef<Group>(null);
+  const [targetMesh, setTargetMesh] = useState<Mesh | null>(null);
+
+  // Creating a stable ref to send to Helper
+  const meshRef = useMemo(() => ({ current: targetMesh }), [targetMesh]);
+  const helperInstanceRef = useHelper(debug && targetMesh ? meshRef : null, VertexNormalsHelper, 0.5, 'green');
+
+  useFrame(() => {
+    if (helperInstanceRef.current) {
+      helperInstanceRef.current.update();
+    }
+  })
 
   const morphMeshesRef = useRef<Mesh[]>([]);
 
@@ -26,12 +45,15 @@ export default function TestBreakWall() {
 
           const matName = material.name.toLowerCase();
           material.side = DoubleSide;
+          material.wireframe = debug;
 
           if (matName.includes('wall')) {
             material.color.set('#392FEB');
+            material.wireframe = debug;
           }
           else if (matName.includes('inside')) {
             material.color.set('#EBDE07');
+            material.wireframe = debug;
           }
           else {
             material.color.set('white');
@@ -71,6 +93,8 @@ export default function TestBreakWall() {
           // Store the reference of the mesh
           morphMeshesRef.current.push(child);
         }
+
+
       }
       if (child.geometry) {
         child.geometry.computeBoundingSphere();
@@ -78,11 +102,13 @@ export default function TestBreakWall() {
       }
     });
     return sceneClone;
-  }, [customModel]);
+  }, [customModel, debug]);
 
   console.log(customMesh);
   if (!customMesh) return null;
 
+
+  // TWEAKPANE
   useEffect(() => {
     const pane = new Pane({ title: 'Test Break Wall' });
 
@@ -117,7 +143,7 @@ export default function TestBreakWall() {
           });
         }
       })
-    } )
+    })
 
     const btnR = pane.addButton ({ title: 'Reset Explosion'});
 
@@ -139,13 +165,29 @@ export default function TestBreakWall() {
       })
 
     })
-  })
+    return () => {
+      pane.dispose();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!groupRef.current) return;
+
+    let found: Mesh | null = null;
+    groupRef.current.traverse((child) => {
+      // Look for the main wall to attach the green lines to
+      if ((child as Mesh).isMesh && !found && child.name.toLowerCase().includes('wall')) {
+        found = child as Mesh;
+      }
+    });
+    setTargetMesh(found);
+  }, [customMesh]);
 
   return (
       <primitive
           object={customMesh}
           scale={[modelScale, modelScale, modelScale]}
-          ref={breakWall}>
+          ref={groupRef}>
       </primitive>
   );
 }
