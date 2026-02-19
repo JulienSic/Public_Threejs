@@ -59,9 +59,9 @@ export function Scene() {
                 <TestBreakWall debug={debugMode} />
             )}
 
-            {/*{currentModel === 'BreakWall' && (
+            {currentModel === 'BreakWall' && (
                 <BreakWall debug={debugMode} />
-            )}*/}
+            )}
 
             {currentModel === 'BasicShape' && (
                 <mesh>
