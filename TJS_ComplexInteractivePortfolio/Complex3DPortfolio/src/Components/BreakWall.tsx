@@ -119,7 +119,9 @@ export default function BreakWall({ debug= false }: BreakWallProps) {
 
                 // Checks if there is a Shapekey in the mesh
                 if (child.morphTargetInfluences) {
-                    console.log(`Found Shape Keys for ${child.name}`, child.morphTargetDictionnary);
+                    // DEBUG
+                    // console.log(`Found Shape Keys for ${child.name}`, child.morphTargetDictionnary);
+
                     // Store the reference of the mesh
                     morphMeshesRef.current.push(child);
                 }
