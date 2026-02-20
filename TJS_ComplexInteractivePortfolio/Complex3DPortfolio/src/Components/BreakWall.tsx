@@ -1,7 +1,7 @@
 import {useFrame, useLoader} from "@react-three/fiber";
 import {useEffect, useMemo, useRef, useState} from "react";
 import {GLTFLoader} from "three/examples/jsm/loaders/GLTFLoader";
-import {DoubleSide, Group, Mesh, MeshStandardMaterial} from "three";
+import {DoubleSide, Group, Mesh, MeshStandardMaterial, Vector3} from "three";
 import {useHelper} from "@react-three/drei";
 import {VertexNormalsHelper} from "three/examples/jsm/helpers/VertexNormalsHelper";
 import {Pane} from "tweakpane";
@@ -30,6 +30,16 @@ export default function BreakWall({ debug= false }: BreakWallProps) {
     const helperRef = useMemo(() => ({ current: targetMesh }), [targetMesh]);
     const movingWallPieces = useRef<Mesh[]>([]);
 
+    const animState = useRef({ explosion: 0});
+
+    // Custom pieces refs
+    const experiencesPieceRef = useRef<Mesh | null>(null);
+    const experiencesPieceInitPosRef = useRef<Vector3>(new Vector3());
+    const experiencesPieceTargetPosRef = useMemo(() => new Vector3(1,1,1), []);
+
+    const projectsPieceRef = useRef<Mesh | null>(null);
+
+
     // Creating a stable ref to send to Helper
     const helperInstanceRef = useHelper(debug && targetMesh ? helperRef : null, VertexNormalsHelper, 0.5, 'green');
 
@@ -40,8 +50,22 @@ export default function BreakWall({ debug= false }: BreakWallProps) {
             helperInstanceRef.current.update();
         }
 
-        const t = clock.getElapsedTime();
+        const animationProgress = animState.current.explosion;
 
+        // Animate Pieces
+        morphMeshesRef.current.forEach((mesh) => {
+            if (mesh.morphTargetInfluences) {
+                mesh.morphTargetInfluences[0] = animationProgress;
+            }
+        });
+
+        if (experiencesPieceRef.current) {
+            experiencesPieceRef.current.position.lerpVectors(
+                experiencesPieceInitPosRef.current,
+                experiencesPieceTargetPosRef,
+                animationProgress
+            );
+        }
 
         // Moving Pieces
         /*movingWallPieces.current.forEach((piece, i) => {
@@ -62,12 +86,22 @@ export default function BreakWall({ debug= false }: BreakWallProps) {
             // DEBUG
             // console.log("Found Object:", child.name);
 
-
             // Filling the Array with meshes
             if (child.name.toLowerCase().includes('moving')) {
                 // DEBUG
-                // console.log("✅ Captured Moving Piece:", child.name);
+                console.log("✅ Captured Moving Piece:", child.name);
                 movingWallPieces.current.push(child);
+            }
+
+            if (child.name === "Wall_Moving_Cell_05") {
+                console.log("Found Experiences Piece", child.name);
+                experiencesPieceRef.current = child as Mesh;
+                experiencesPieceInitPosRef.current.copy(child.position);
+            }
+
+            if (child.name === "Wall_Moving_Cell_07") {
+                console.log("Found Experiences Piece", child.name);
+                projectsPieceRef.current = child as Mesh;
             }
 
             // Failsafe, targeting mesh only
@@ -162,52 +196,29 @@ export default function BreakWall({ debug= false }: BreakWallProps) {
             explosion: 0,
         }
 
-        pane.addBinding(params, 'explosion',   {min: 0, max: 1, step: 0.01})
-            .on('change', (ev) => {
-                morphMeshesRef.current.forEach((mesh) => {
-                    if (mesh.morphTargetInfluences) {
-                        mesh.morphTargetInfluences[0] = ev.value;
-                    }
-                });
-            })
+        pane.addBinding(animState.current, 'explosion',   {min: 0, max: 1, step: 0.01});
 
         const btn = pane.addButton ({ title: 'Wall Explosion' });
 
         btn.on('click', () => {
-            gsap.killTweensOf(params);
-            gsap.to(params, {
+            gsap.killTweensOf(animState.current);
+            gsap.to(animState.current, {
                 explosion: 1,
                 duration: 1.5,
                 ease: "power2.out",
-                onUpdate: () => {
-                    pane.refresh();
-
-                    morphMeshesRef.current.forEach((mesh) => {
-                        if (mesh.morphTargetInfluences) {
-                            mesh.morphTargetInfluences[0] = params.explosion;
-                        }
-                    });
-                }
+                onUpdate: () => pane.refresh()
             })
         })
 
         const btnR = pane.addButton ({ title: 'Reset Explosion'});
 
         btnR.on('click', () => {
-            gsap.killTweensOf(params);
-            gsap.to(params, {
+            gsap.killTweensOf(animState.current);
+            gsap.to(animState.current, {
                 explosion:0,
                 duration: 0.5,
                 ease: "power2.out",
-                onUpdate: () => {
-                    pane.refresh();
-
-                    morphMeshesRef.current.forEach((mesh) => {
-                        if (mesh.morphTargetInfluences) {
-                            mesh.morphTargetInfluences[0] = params.explosion;
-                        }
-                    });
-                }
+                onUpdate: () => pane.refresh()
             })
 
         })
