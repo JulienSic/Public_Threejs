@@ -1,7 +1,7 @@
 import {useFrame, useLoader} from "@react-three/fiber";
 import {useEffect, useMemo, useRef, useState} from "react";
 import {GLTFLoader} from "three/examples/jsm/loaders/GLTFLoader";
-import {DoubleSide, Group, Mesh, MeshStandardMaterial, Vector3} from "three";
+import {DoubleSide, Group, Mesh, MeshStandardMaterial, Quaternion, Vector3, Euler, MathUtils} from "three";
 import {useHelper} from "@react-three/drei";
 import {VertexNormalsHelper} from "three/examples/jsm/helpers/VertexNormalsHelper";
 import {Pane} from "tweakpane";
@@ -10,6 +10,26 @@ import gsap from "gsap";
 interface BreakWallProps {
     debug?: boolean;
 }
+
+interface AnimatedPiece {
+    mesh: Mesh;
+    initPos: Vector3;
+    targetPos: Vector3;
+    initRot: Quaternion;
+    targetRot: Quaternion;
+}
+
+const PIECE_CONFIGS = [
+    { name: "Wall_Moving_Cell_05", posOffset: new Vector3(-0.5,1,6), rotOffset: new Euler(MathUtils.degToRad(9), MathUtils.degToRad(-62), MathUtils.degToRad(-0)) },
+    { name: "Wall_Moving_Cell_07", posOffset: new Vector3(1.5,1,7), rotOffset: new Euler(MathUtils.degToRad(-20), MathUtils.degToRad(78), MathUtils.degToRad(-0)) },
+    { name: "Wall_Moving_Cell_09", posOffset: new Vector3(1,-3,5), rotOffset: new Euler(MathUtils.degToRad(20), MathUtils.degToRad(73), MathUtils.degToRad(-0)) },
+    { name: "Wall_Moving_Cell_06", posOffset: new Vector3(1,1,13), rotOffset: new Euler(MathUtils.degToRad(0), MathUtils.degToRad(-217), MathUtils.degToRad(-92)) },
+    { name: "Wall_Moving_Cell_12", posOffset: new Vector3(-1.5,1,8), rotOffset: new Euler(MathUtils.degToRad(-34), MathUtils.degToRad(-179), MathUtils.degToRad(-0)) },
+    { name: "Wall_Moving_Cell_13", posOffset: new Vector3(1,-1,12), rotOffset: new Euler(0, 0, 0) },
+    { name: "Wall_Moving_Cell_10", posOffset: new Vector3(1,0,12), rotOffset: new Euler(0, 0, 0) },
+    { name: "Wall_Moving_Cell_14", posOffset: new Vector3(1,1,13), rotOffset: new Euler(0, 0, 0) },
+    { name: "Wall_Moving_Cell_15", posOffset: new Vector3(1,1,11), rotOffset: new Euler(0, 0, 0) }
+]
 
 export default function BreakWall({ debug= false }: BreakWallProps) {
     // Importing from files
@@ -28,51 +48,15 @@ export default function BreakWall({ debug= false }: BreakWallProps) {
     const groupRef = useRef<Group>(null);
     const [targetMesh, setTargetMesh] = useState<Mesh | null>(null);
     const helperRef = useMemo(() => ({ current: targetMesh }), [targetMesh]);
-    const movingWallPieces = useRef<Mesh[]>([]);
 
     const animState = useRef({ explosion: 0});
-
-    // Custom pieces refs
-    const experiencesPieceRef = useRef<Mesh | null>(null);
-    const experiencesPieceInitPosRef = useRef<Vector3>(new Vector3());
-    const experiencesPieceTargetPosRef = useRef<Vector3>(new Vector3());
-
-    const projectsPieceRef = useRef<Mesh | null>(null);
-    const projectsPieceInitPosRef = useRef<Vector3>(new Vector3());
-    const projectsPieceTargetPosRef = useRef<Vector3>(new Vector3());
-
-    const skillsPieceRef = useRef<Mesh | null>(null);
-    const skillsPieceInitPosRef = useRef<Vector3>(new Vector3());
-    const skillsPieceTargetPosRef = useRef<Vector3>(new Vector3());
-
-    const middlePieceRef = useRef<Mesh | null>(null);
-    const middlePieceInitPosRef = useRef<Vector3>(new Vector3());
-    const middlePieceTargetPosRef = useRef<Vector3>(new Vector3());
-
-    const smallRotating01PieceRef = useRef<Mesh | null>(null);
-    const smallRotating01PieceInitPosRef = useRef<Vector3>(new Vector3());
-    const smallRotating01PieceTargetPosRef = useRef<Vector3>(new Vector3());
-
-    const smallRotating02PieceRef = useRef<Mesh | null>(null);
-    const smallRotating02PieceInitPosRef = useRef<Vector3>(new Vector3());
-    const smallRotating02PieceTargetPosRef = useRef<Vector3>(new Vector3());
-
-    const smallRotating03PieceRef = useRef<Mesh | null>(null);
-    const smallRotating03PieceInitPosRef = useRef<Vector3>(new Vector3());
-    const smallRotating03PieceTargetPosRef = useRef<Vector3>(new Vector3());
-
-    const smallRotating04PieceRef = useRef<Mesh | null>(null);
-    const smallRotating04PieceInitPosRef = useRef<Vector3>(new Vector3());
-    const smallRotating04PieceTargetPosRef = useRef<Vector3>(new Vector3());
-
-    const smallRotating05PieceRef = useRef<Mesh | null>(null);
-    const smallRotating05PieceInitPosRef = useRef<Vector3>(new Vector3());
-    const smallRotating05PieceTargetPosRef = useRef<Vector3>(new Vector3());
 
     // Creating a stable ref to send to Helper
     const helperInstanceRef = useHelper(debug && targetMesh ? helperRef : null, VertexNormalsHelper, 0.5, 'green');
 
     const morphMeshesRef = useRef<Mesh[]>([]);
+    const movingWallPieces = useRef<Mesh[]>([]);
+    const animatedPiecesRef = useRef<AnimatedPiece[]>([]);
 
     useFrame(({}) => {
         if (helperInstanceRef.current) {
@@ -88,77 +72,10 @@ export default function BreakWall({ debug= false }: BreakWallProps) {
             }
         });
 
-        if (experiencesPieceRef.current) {
-            experiencesPieceRef.current.position.lerpVectors(
-                experiencesPieceInitPosRef.current,
-                experiencesPieceTargetPosRef.current,
-                animationProgress
-            );
-        }
-
-        if (projectsPieceRef.current) {
-            projectsPieceRef.current.position.lerpVectors(
-                projectsPieceInitPosRef.current,
-                projectsPieceTargetPosRef.current,
-                animationProgress
-            );
-        }
-
-        if (skillsPieceRef.current) {
-            skillsPieceRef.current.position.lerpVectors(
-                skillsPieceInitPosRef.current,
-                skillsPieceTargetPosRef.current,
-                animationProgress
-            );
-        }
-
-        if (middlePieceRef.current) {
-            middlePieceRef.current.position.lerpVectors(
-                middlePieceInitPosRef.current,
-                middlePieceTargetPosRef.current,
-                animationProgress
-            );
-        }
-
-        if (smallRotating01PieceRef.current) {
-            smallRotating01PieceRef.current.position.lerpVectors(
-                smallRotating01PieceInitPosRef.current,
-                smallRotating01PieceTargetPosRef.current,
-                animationProgress
-            );
-        }
-
-        if (smallRotating02PieceRef.current) {
-            smallRotating02PieceRef.current.position.lerpVectors(
-                smallRotating02PieceInitPosRef.current,
-                smallRotating02PieceTargetPosRef.current,
-                animationProgress
-            );
-        }
-
-        if (smallRotating03PieceRef.current) {
-            smallRotating03PieceRef.current.position.lerpVectors(
-                smallRotating03PieceInitPosRef.current,
-                smallRotating03PieceTargetPosRef.current,
-                animationProgress
-            );
-        }
-
-        if (smallRotating04PieceRef.current) {
-            smallRotating04PieceRef.current.position.lerpVectors(
-                smallRotating04PieceInitPosRef.current,
-                smallRotating04PieceTargetPosRef.current,
-                animationProgress
-            );
-        }
-
-        if (smallRotating05PieceRef.current) {
-            smallRotating05PieceRef.current.position.lerpVectors(
-                smallRotating05PieceInitPosRef.current,
-                smallRotating05PieceTargetPosRef.current,
-                animationProgress
-            );
-        }
+        animatedPiecesRef.current.forEach((piece) => {
+            piece.mesh.position.lerpVectors(piece.initPos, piece.targetPos, animationProgress);
+            piece.mesh.quaternion.slerpQuaternions(piece.initRot, piece.targetRot, animationProgress);
+        })
     })
 
     // Extract and store mesh Object properties
@@ -167,82 +84,40 @@ export default function BreakWall({ debug= false }: BreakWallProps) {
 
         morphMeshesRef.current = [];
         movingWallPieces.current = [];
+        animatedPiecesRef.current = [];
+
+        const configMap = new Map(PIECE_CONFIGS.map(c => [c.name, c]));
 
         // Extract file content
         sceneClone.traverse((child) => {
-
-            // DEBUG
-            // console.log("Found Object:", child.name);
-
-            // Filling the Array with meshes
-            if (child.name.toLowerCase().includes('moving')) {
                 // DEBUG
-                console.log("✅ Captured Moving Piece:", child.name);
-                movingWallPieces.current.push(child as Mesh);
-            }
+                // console.log("Found Object:", child.name);
 
-            if (child.name === "Wall_Moving_Cell_05") {
-                console.log("Found Experiences Piece", child.name);
-                experiencesPieceRef.current = child as Mesh;
-                experiencesPieceInitPosRef.current.copy(child.position);
-                experiencesPieceTargetPosRef.current.copy(child.position).add(new Vector3(-0.5,1,6));
-            }
+                if (child.name.toLowerCase().includes("moving")) {
+                    movingWallPieces.current.push(child);
+                }
 
-            if (child.name === "Wall_Moving_Cell_07") {
-                console.log("Found Projects Piece", child.name);
-                projectsPieceRef.current = child as Mesh;
-                projectsPieceInitPosRef.current.copy(child.position);
-                projectsPieceTargetPosRef.current.copy(child.position).add(new Vector3(1.5,1,7));
-            }
+                const config = configMap.get(child.name);
+                if (config) {
 
-            if (child.name === "Wall_Moving_Cell_09") {
-                console.log("Found Skills Piece", child.name);
-                skillsPieceRef.current = child as Mesh;
-                skillsPieceInitPosRef.current.copy(child.position);
-                skillsPieceTargetPosRef.current.copy(child.position).add(new Vector3(1,1,4));
-            }
+                    // DEBUG
+                    // console.log(`🌟 Configured Special Piece: ${child.name}`);
 
-            if (child.name === "Wall_Moving_Cell_06") {
-                console.log("Found Middle Piece", child.name);
-                middlePieceRef.current = child as Mesh;
-                middlePieceInitPosRef.current.copy(child.position);
-                middlePieceTargetPosRef.current.copy(child.position).add(new Vector3(1,1,10));
-            }
+                    const initPos = new Vector3().copy(child.position);
+                    const targetPos = new Vector3().copy(child.position).add(config.posOffset);
 
-            if (child.name === "Wall_Moving_Cell_12") {
-                console.log("Found a matching Piece", child.name);
-                smallRotating01PieceRef.current = child as Mesh;
-                smallRotating01PieceInitPosRef.current.copy(child.position);
-                smallRotating01PieceTargetPosRef.current.copy(child.position).add(new Vector3(-1.5,1,8));
-            }
+                    const initRot = new Quaternion().copy(child.quaternion);
+                    const offsetQuat = new Quaternion().setFromEuler(config.rotOffset)
+                    const targetRot = new Quaternion().copy(child.quaternion).multiply(offsetQuat);
 
-            if (child.name === "Wall_Moving_Cell_13") {
-                console.log("Found a matching Piece", child.name);
-                smallRotating02PieceRef.current = child as Mesh;
-                smallRotating02PieceInitPosRef.current.copy(child.position);
-                smallRotating02PieceTargetPosRef.current.copy(child.position).add(new Vector3(1,-1,9));
-            }
-
-            if (child.name === "Wall_Moving_Cell_10") {
-                console.log("Found a matching Piece", child.name);
-                smallRotating03PieceRef.current = child as Mesh;
-                smallRotating03PieceInitPosRef.current.copy(child.position);
-                smallRotating03PieceTargetPosRef.current.copy(child.position).add(new Vector3(1,0,9));
-            }
-
-            if (child.name === "Wall_Moving_Cell_14") {
-                console.log("Found a matching Piece", child.name);
-                smallRotating04PieceRef.current = child as Mesh;
-                smallRotating04PieceInitPosRef.current.copy(child.position);
-                smallRotating04PieceTargetPosRef.current.copy(child.position).add(new Vector3(1,1,13));
-            }
-
-            if (child.name === "Wall_Moving_Cell_15") {
-                console.log("Found a matching Piece", child.name);
-                smallRotating05PieceRef.current = child as Mesh;
-                smallRotating05PieceInitPosRef.current.copy(child.position);
-                smallRotating05PieceTargetPosRef.current.copy(child.position).add(new Vector3(1,1,11));
-            }
+                    animatedPiecesRef.current.push({
+                        mesh: child,
+                        initPos: initPos,
+                        targetPos: targetPos,
+                        initRot: initRot,
+                        targetRot: targetRot
+                    });
+                }
 
             // Failsafe, targeting mesh only
             if ((child as Mesh).isMesh) {
