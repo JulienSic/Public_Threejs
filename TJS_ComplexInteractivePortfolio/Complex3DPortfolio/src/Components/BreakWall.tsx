@@ -1,7 +1,7 @@
 import {useFrame, useLoader} from "@react-three/fiber";
 import {useEffect, useMemo, useRef, useState} from "react";
 import {GLTFLoader} from "three/examples/jsm/loaders/GLTFLoader";
-import {DoubleSide, Group, Mesh, MeshStandardMaterial, Quaternion, Vector3, Euler, MathUtils} from "three";
+import {DoubleSide, Group, Mesh, MeshStandardMaterial, Quaternion, Vector3, Object3D, Euler, MathUtils} from "three";
 import {useHelper} from "@react-three/drei";
 import {VertexNormalsHelper} from "three/examples/jsm/helpers/VertexNormalsHelper";
 import {Pane} from "tweakpane";
@@ -12,11 +12,14 @@ interface BreakWallProps {
 }
 
 interface AnimatedPiece {
-    mesh: Mesh;
+    target: Object3D;
     initPos: Vector3;
     targetPos: Vector3;
     initRot: Quaternion;
     targetRot: Quaternion;
+    initEuler: Euler;
+    targetEuler: Euler;
+    useEuler: boolean;
 }
 
 const PIECE_CONFIGS = [
@@ -24,11 +27,11 @@ const PIECE_CONFIGS = [
     { name: "Wall_Moving_Cell_07", posOffset: new Vector3(1.5,1,7), rotOffset: new Euler(MathUtils.degToRad(-20), MathUtils.degToRad(78), MathUtils.degToRad(-0)) },
     { name: "Wall_Moving_Cell_09", posOffset: new Vector3(1,-3,5), rotOffset: new Euler(MathUtils.degToRad(20), MathUtils.degToRad(73), MathUtils.degToRad(-0)) },
     { name: "Wall_Moving_Cell_06", posOffset: new Vector3(1,1,13), rotOffset: new Euler(MathUtils.degToRad(0), MathUtils.degToRad(-217), MathUtils.degToRad(-92)) },
-    { name: "Wall_Moving_Cell_12", posOffset: new Vector3(-1.5,1,8), rotOffset: new Euler(MathUtils.degToRad(-34), MathUtils.degToRad(-179), MathUtils.degToRad(-0)) },
-    { name: "Wall_Moving_Cell_13", posOffset: new Vector3(1,-1,12), rotOffset: new Euler(0, 0, 0) },
-    { name: "Wall_Moving_Cell_10", posOffset: new Vector3(1,0,12), rotOffset: new Euler(0, 0, 0) },
-    { name: "Wall_Moving_Cell_14", posOffset: new Vector3(1,1,13), rotOffset: new Euler(0, 0, 0) },
-    { name: "Wall_Moving_Cell_15", posOffset: new Vector3(1,1,11), rotOffset: new Euler(0, 0, 0) }
+    { name: "Wall_Moving_Cell_12", posOffset: new Vector3(-1.5,1,8), rotOffset: new Euler(MathUtils.degToRad(-34), MathUtils.degToRad(-439), MathUtils.degToRad(-0)), useEuler: true },
+    { name: "Wall_Moving_Cell_13", posOffset: new Vector3(1,-1,12), rotOffset: new Euler(MathUtils.degToRad(11), MathUtils.degToRad(2), MathUtils.degToRad(96)) },
+    { name: "Wall_Moving_Cell_10", posOffset: new Vector3(1,0,15), rotOffset: new Euler(MathUtils.degToRad(23), MathUtils.degToRad(-295), MathUtils.degToRad(247)), useEuler: true },
+    { name: "Wall_Moving_Cell_14", posOffset: new Vector3(1,1,16), rotOffset: new Euler(MathUtils.degToRad(7), MathUtils.degToRad(-57), MathUtils.degToRad(-270)), useEuler: true },
+    { name: "Wall_Moving_Cell_15", posOffset: new Vector3(1,1,11), rotOffset: new Euler(MathUtils.degToRad(12), MathUtils.degToRad(67), MathUtils.degToRad(20)) }
 ]
 
 export default function BreakWall({ debug= false }: BreakWallProps) {
@@ -73,8 +76,17 @@ export default function BreakWall({ debug= false }: BreakWallProps) {
         });
 
         animatedPiecesRef.current.forEach((piece) => {
-            piece.mesh.position.lerpVectors(piece.initPos, piece.targetPos, animationProgress);
-            piece.mesh.quaternion.slerpQuaternions(piece.initRot, piece.targetRot, animationProgress);
+            piece.target.position.lerpVectors(piece.initPos, piece.targetPos, animationProgress);
+
+            if (piece.useEuler) {
+                const newX = MathUtils.lerp(piece.initEuler.x, piece.targetEuler.x, animationProgress);
+                const newY = MathUtils.lerp(piece.initEuler.y, piece.targetEuler.y, animationProgress);
+                const newZ = MathUtils.lerp(piece.initEuler.z, piece.targetEuler.z, animationProgress);
+                piece.target.rotation.set(newX, newY, newZ);
+            } else {
+                piece.target.quaternion.slerpQuaternions(piece.initRot, piece.targetRot, animationProgress);
+            }
+
         })
     })
 
@@ -90,34 +102,46 @@ export default function BreakWall({ debug= false }: BreakWallProps) {
 
         // Extract file content
         sceneClone.traverse((child) => {
+            // DEBUG
+            // console.log("Found Object:", child.name);
+
+            if (child.name.toLowerCase().includes("moving")) {
+                movingWallPieces.current.push(child);
+            }
+
+            const config = configMap.get(child.name);
+            if (config) {
+
                 // DEBUG
-                // console.log("Found Object:", child.name);
+                // console.log(`🌟 Configured Special Piece: ${child.name}`);
 
-                if (child.name.toLowerCase().includes("moving")) {
-                    movingWallPieces.current.push(child);
-                }
+                const initPos = new Vector3().copy(child.position);
+                const targetPos = new Vector3().copy(child.position).add(config.posOffset);
 
-                const config = configMap.get(child.name);
-                if (config) {
+                // Quaternion
+                const initRot = new Quaternion().copy(child.quaternion);
+                const offsetQuat = new Quaternion().setFromEuler(config.rotOffset)
+                const targetRot = new Quaternion().copy(child.quaternion).multiply(offsetQuat);
 
-                    // DEBUG
-                    // console.log(`🌟 Configured Special Piece: ${child.name}`);
+                // Euler
+                const initEuler = new Euler().copy(child.rotation);
+                const targetEuler = new Euler(
+                    initEuler.x + config.rotOffset.x,
+                    initEuler.y + config.rotOffset.y,
+                    initEuler.z + config.rotOffset.z,
+                );
 
-                    const initPos = new Vector3().copy(child.position);
-                    const targetPos = new Vector3().copy(child.position).add(config.posOffset);
-
-                    const initRot = new Quaternion().copy(child.quaternion);
-                    const offsetQuat = new Quaternion().setFromEuler(config.rotOffset)
-                    const targetRot = new Quaternion().copy(child.quaternion).multiply(offsetQuat);
-
-                    animatedPiecesRef.current.push({
-                        mesh: child,
-                        initPos: initPos,
-                        targetPos: targetPos,
-                        initRot: initRot,
-                        targetRot: targetRot
-                    });
-                }
+                animatedPiecesRef.current.push({
+                    target: child,
+                    initPos: initPos,
+                    targetPos: targetPos,
+                    initRot: initRot,
+                    targetRot: targetRot,
+                    initEuler: initEuler,
+                    targetEuler: targetEuler,
+                    useEuler: !!config.useEuler
+                });
+            }
 
             // Failsafe, targeting mesh only
             if ((child as Mesh).isMesh) {
@@ -207,9 +231,6 @@ export default function BreakWall({ debug= false }: BreakWallProps) {
     useEffect(() => {
         const pane = new Pane({ title: 'Break Wall' });
 
-        const params = {
-            explosion: 0,
-        }
 
         pane.addBinding(animState.current, 'explosion',   {min: 0, max: 1, step: 0.01});
 
