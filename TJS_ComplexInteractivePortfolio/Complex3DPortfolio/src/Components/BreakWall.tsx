@@ -20,6 +20,8 @@ interface AnimatedPiece {
     initEuler: Euler;
     targetEuler: Euler;
     useEuler: boolean;
+    continuousSpin?: Vector3;
+    currentSpeed?: Vector3;
 }
 
 const PIECE_CONFIGS = [
@@ -30,7 +32,7 @@ const PIECE_CONFIGS = [
     { name: "Wall_Moving_Cell_12", posOffset: new Vector3(-1.5,1,8), rotOffset: new Euler(MathUtils.degToRad(-34), MathUtils.degToRad(-439), MathUtils.degToRad(-0)), useEuler: true },
     { name: "Wall_Moving_Cell_13", posOffset: new Vector3(1,-1,12), rotOffset: new Euler(MathUtils.degToRad(11), MathUtils.degToRad(2), MathUtils.degToRad(96)) },
     { name: "Wall_Moving_Cell_10", posOffset: new Vector3(1,0,15), rotOffset: new Euler(MathUtils.degToRad(23), MathUtils.degToRad(-295), MathUtils.degToRad(247)), useEuler: true },
-    { name: "Wall_Moving_Cell_14", posOffset: new Vector3(1,1,16), rotOffset: new Euler(MathUtils.degToRad(7), MathUtils.degToRad(-57), MathUtils.degToRad(-270)), useEuler: true },
+    { name: "Wall_Moving_Cell_14", posOffset: new Vector3(1,1,16),rotOffset: new Euler(0,0,0) , continuousSpin: new Vector3(MathUtils.degToRad(7), MathUtils.degToRad(-57), MathUtils.degToRad(360))},
     { name: "Wall_Moving_Cell_15", posOffset: new Vector3(1,1,11), rotOffset: new Euler(MathUtils.degToRad(12), MathUtils.degToRad(67), MathUtils.degToRad(20)) }
 ]
 
@@ -52,7 +54,7 @@ export default function BreakWall({ debug= false }: BreakWallProps) {
     const [targetMesh, setTargetMesh] = useState<Mesh | null>(null);
     const helperRef = useMemo(() => ({ current: targetMesh }), [targetMesh]);
 
-    const animState = useRef({ explosion: 0});
+    const animState = useRef({ explosion: 0, isClosing: false });
 
     // Creating a stable ref to send to Helper
     const helperInstanceRef = useHelper(debug && targetMesh ? helperRef : null, VertexNormalsHelper, 0.5, 'green');
@@ -61,7 +63,7 @@ export default function BreakWall({ debug= false }: BreakWallProps) {
     const movingWallPieces = useRef<Mesh[]>([]);
     const animatedPiecesRef = useRef<AnimatedPiece[]>([]);
 
-    useFrame(({}) => {
+    useFrame((_state, delta) => {
         if (helperInstanceRef.current) {
             helperInstanceRef.current.update();
         }
@@ -78,12 +80,31 @@ export default function BreakWall({ debug= false }: BreakWallProps) {
         animatedPiecesRef.current.forEach((piece) => {
             piece.target.position.lerpVectors(piece.initPos, piece.targetPos, animationProgress);
 
-            if (piece.useEuler) {
+            if (piece.continuousSpin && piece.currentSpeed) {
+
+                if (animState.current.isClosing || animationProgress < 0.01) {
+                    piece.target.quaternion.slerp(piece.initRot, 20 * delta);
+
+                } else {
+                    const targetSpeed = piece.continuousSpin;
+
+                    piece.currentSpeed.lerp(targetSpeed, 3 * delta);
+
+                    piece.target.rotateX(piece.currentSpeed.x * delta);
+                    piece.target.rotateY(piece.currentSpeed.y * delta);
+                    piece.target.rotateZ(piece.currentSpeed.z * delta);
+
+                }
+            } else if (piece.useEuler) {
+
+                // Euler Spin Method
                 const newX = MathUtils.lerp(piece.initEuler.x, piece.targetEuler.x, animationProgress);
                 const newY = MathUtils.lerp(piece.initEuler.y, piece.targetEuler.y, animationProgress);
                 const newZ = MathUtils.lerp(piece.initEuler.z, piece.targetEuler.z, animationProgress);
                 piece.target.rotation.set(newX, newY, newZ);
             } else {
+
+                // Quaternion Spin method
                 piece.target.quaternion.slerpQuaternions(piece.initRot, piece.targetRot, animationProgress);
             }
 
@@ -139,7 +160,9 @@ export default function BreakWall({ debug= false }: BreakWallProps) {
                     targetRot: targetRot,
                     initEuler: initEuler,
                     targetEuler: targetEuler,
-                    useEuler: !!config.useEuler
+                    useEuler: !!config.useEuler,
+                    continuousSpin: config.continuousSpin,
+                    currentSpeed: config.continuousSpin ? new Vector3(0,0,0) : undefined
                 });
             }
 
@@ -236,7 +259,26 @@ export default function BreakWall({ debug= false }: BreakWallProps) {
 
         const btn = pane.addButton ({ title: 'Wall Explosion' });
 
+        const windUpSpins = () => {
+            animatedPiecesRef.current.forEach((piece) => {
+
+                if (piece.continuousSpin && piece.currentSpeed) {
+                    piece.currentSpeed.copy(piece.continuousSpin).multiplyScalar(8);
+                }
+            });
+        };
+
+        const resetSpins = () => {
+            animatedPiecesRef.current.forEach((piece) => {
+                if (piece.continuousSpin && piece.currentSpeed) {
+                    piece.currentSpeed.set(0,0,0);
+                }
+            });
+        }
+
         btn.on('click', () => {
+            windUpSpins()
+            animState.current.isClosing = false;
             gsap.killTweensOf(animState.current);
             gsap.to(animState.current, {
                 explosion: 1,
@@ -249,6 +291,8 @@ export default function BreakWall({ debug= false }: BreakWallProps) {
         const btnR = pane.addButton ({ title: 'Reset Explosion'});
 
         btnR.on('click', () => {
+            resetSpins()
+            animState.current.isClosing = true;
             gsap.killTweensOf(animState.current);
             gsap.to(animState.current, {
                 explosion:0,
