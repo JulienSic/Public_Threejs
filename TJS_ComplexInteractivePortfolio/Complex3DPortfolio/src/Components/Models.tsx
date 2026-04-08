@@ -1,12 +1,13 @@
 import { OrbitControls } from "@react-three/drei";
 import TestBreakWall from "./TestBreakWall.tsx";
 import BreakWall from "./BreakWall.tsx";
+import CIP3D_ModelHandler from "./CIP3D_ModelHandler.tsx";
 import {useEffect, useState} from "react";
 import {Pane} from "tweakpane";
 
 
 export function Scene() {
-    const [currentModel, setCurrentModel] = useState('TestBreakWall');
+    const [currentModel, setCurrentModel] = useState('CIP3DModelHandler');
     const [debugMode, setDebugMode] = useState(false);
 
 
@@ -24,7 +25,7 @@ export function Scene() {
 
 
         const params = {
-            model: 'TestBreakWall',
+            model: 'CIP3DModelHandler',
             debug: false,
         }
 
@@ -33,6 +34,7 @@ export function Scene() {
                 'Test Break Wall': 'TestBreakWall',
                 'Break Wall': 'BreakWall',
                 'Basic Shape': 'BasicShape',
+                'Portfolio Full': 'CIP3DModelHandler',
             },
             label: 'Select Model'
         }).on('change', (ev) => {
@@ -61,6 +63,10 @@ export function Scene() {
 
             {currentModel === 'BreakWall' && (
                 <BreakWall debug={debugMode} />
+            )}
+
+            {currentModel === 'CIP3DModelHandler' && (
+                <CIP3D_ModelHandler debug={debugMode} />
             )}
 
             {currentModel === 'BasicShape' && (
