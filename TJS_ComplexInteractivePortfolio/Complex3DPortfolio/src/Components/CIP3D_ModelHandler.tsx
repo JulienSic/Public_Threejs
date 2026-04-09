@@ -28,10 +28,10 @@ const PIECE_CONFIGS = [
     { name: "Wall_Moving_Cell_05", posOffset: new Vector3(-0.5,1,6), rotOffset: new Euler(MathUtils.degToRad(9), MathUtils.degToRad(-62), MathUtils.degToRad(-0)) },
     { name: "Wall_Moving_Cell_07", posOffset: new Vector3(1.5,1,7), rotOffset: new Euler(MathUtils.degToRad(-20), MathUtils.degToRad(78), MathUtils.degToRad(-0)) },
     { name: "Wall_Moving_Cell_09", posOffset: new Vector3(1,-3,5), rotOffset: new Euler(MathUtils.degToRad(20), MathUtils.degToRad(73), MathUtils.degToRad(-0)) },
-    { name: "Wall_Moving_Cell_06", posOffset: new Vector3(1,1,13), rotOffset: new Euler(MathUtils.degToRad(0), MathUtils.degToRad(-217), MathUtils.degToRad(-92)) },
+    { name: "Wall_Moving_Cell_06", posOffset: new Vector3(1,1,13), rotOffset: new Euler(MathUtils.degToRad(10), MathUtils.degToRad(-217), MathUtils.degToRad(-92)) },
     { name: "Wall_Moving_Cell_12", posOffset: new Vector3(-1.5,1,8), rotOffset: new Euler(MathUtils.degToRad(-34), MathUtils.degToRad(-439), MathUtils.degToRad(-0)), useEuler: true },
     { name: "Wall_Moving_Cell_13", posOffset: new Vector3(1,-1,12), rotOffset: new Euler(MathUtils.degToRad(11), MathUtils.degToRad(2), MathUtils.degToRad(96)) },
-    { name: "Wall_Moving_Cell_10", posOffset: new Vector3(1,0,15), rotOffset: new Euler(MathUtils.degToRad(23), MathUtils.degToRad(-295), MathUtils.degToRad(247)), useEuler: true },
+    { name: "Wall_Moving_Cell_10", posOffset: new Vector3(1,2,15), rotOffset: new Euler(MathUtils.degToRad(23), MathUtils.degToRad(-295), MathUtils.degToRad(247)), useEuler: true },
     { name: "Wall_Moving_Cell_14", posOffset: new Vector3(1,1,16),rotOffset: new Euler(0,0,0) , continuousSpin: new Vector3(MathUtils.degToRad(7), MathUtils.degToRad(-57), MathUtils.degToRad(360))},
     { name: "Wall_Moving_Cell_15", posOffset: new Vector3(1,1,11), rotOffset: new Euler(MathUtils.degToRad(12), MathUtils.degToRad(67), MathUtils.degToRad(20)) }
 ]
@@ -43,6 +43,9 @@ export default function CIP3D_ModelHandler({ debug= false }: BreakWallProps) {
     wallTextureBaseColor.flipY = false;
     const insideTextureBaseColor = useLoader(TextureLoader, '/assets/textures/CIP3D_Inside.png');
     insideTextureBaseColor.flipY = false;
+    const backTextureBaseColor = useLoader(TextureLoader, '/assets/textures/CIP3D_Back.png');
+    backTextureBaseColor.flipY = false;
+
 
     // Model Params
     const modelScale = 0.3;
@@ -218,6 +221,14 @@ export default function CIP3D_ModelHandler({ debug= false }: BreakWallProps) {
                             newMat.color.set(defaultInsideColor);
                             break;
                         case matName.includes('back'):
+                            if (backTextureBaseColor) {
+                                // console.log('[DBG] CIP3D_ModelHandler.tsx/applyMat | Back Texture Found and Applied');
+
+                                newMat.map = backTextureBaseColor;
+                                break;
+                            }
+                            // console.log('[DBG] CIP3D_ModelHandler.tsx/applyMat | Back Texture Not Found, Applied Wall color : ' + defaultBackColor)
+
                             newMat.color.set(defaultBackColor);
                             break;
                         default:
