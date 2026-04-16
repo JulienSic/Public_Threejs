@@ -7,7 +7,7 @@ import {VertexNormalsHelper} from "three/examples/jsm/helpers/VertexNormalsHelpe
 import {Pane} from "tweakpane";
 import gsap from "gsap";
 
-interface BreakWallProps {
+interface GIP3DModelProps {
     debug?: boolean;
 }
 
@@ -27,7 +27,7 @@ interface AnimatedPiece {
 const PIECE_CONFIGS = [
     { name: "Wall_Moving_Cell_05", posOffset: new Vector3(-0.5,1,6), rotOffset: new Euler(MathUtils.degToRad(9), MathUtils.degToRad(-62), MathUtils.degToRad(-0)) },
     { name: "Wall_Moving_Cell_07", posOffset: new Vector3(1.5,1,7), rotOffset: new Euler(MathUtils.degToRad(-20), MathUtils.degToRad(78), MathUtils.degToRad(-0)) },
-    { name: "Wall_Moving_Cell_09", posOffset: new Vector3(1,-3,5), rotOffset: new Euler(MathUtils.degToRad(20), MathUtils.degToRad(73), MathUtils.degToRad(-0)) },
+    { name: "Wall_Moving_Cell_09", posOffset: new Vector3(1,-3,5.5), rotOffset: new Euler(MathUtils.degToRad(20), MathUtils.degToRad(73), MathUtils.degToRad(-0)) },
     { name: "Wall_Moving_Cell_06", posOffset: new Vector3(1,1,13), rotOffset: new Euler(MathUtils.degToRad(10), MathUtils.degToRad(-217), MathUtils.degToRad(-92)) },
     { name: "Wall_Moving_Cell_12", posOffset: new Vector3(-1.5,1,8), rotOffset: new Euler(MathUtils.degToRad(-34), MathUtils.degToRad(-439), MathUtils.degToRad(-0)), useEuler: true },
     { name: "Wall_Moving_Cell_13", posOffset: new Vector3(1,-1,12), rotOffset: new Euler(MathUtils.degToRad(11), MathUtils.degToRad(2), MathUtils.degToRad(96)) },
@@ -36,7 +36,7 @@ const PIECE_CONFIGS = [
     { name: "Wall_Moving_Cell_15", posOffset: new Vector3(1,1,11), rotOffset: new Euler(MathUtils.degToRad(12), MathUtils.degToRad(67), MathUtils.degToRad(20)) }
 ]
 
-export default function CIP3D_ModelHandler({ debug= false }: BreakWallProps) {
+export default function CIP3D_ModelHandler({ debug= false }: GIP3DModelProps) {
     // Importing from files
     const breakWallModel = useLoader(GLTFLoader, '/assets/models/TJS_CIP3D_Model.glb');
     const wallTextureBaseColor = useLoader(TextureLoader, '/assets/textures/CIP3D_Front.png');
