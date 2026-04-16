@@ -1,13 +1,16 @@
-import {DoubleSide, MeshStandardMaterial} from "three";
+import {DoubleSide} from "three";
+import {useCameraStore} from "../store/useCameraStore.ts";
+import {useEffect} from "react";
 
 
 interface UIHandlerProps {
     debug?: boolean;
     uiDebug?: boolean;
-    onTriggerClick: (target: string) => void;
 }
 
-export default function UIHandler({ debug= false, uiDebug= false, onTriggerClick }: UIHandlerProps) {
+export default function UIHandler({ debug= false, uiDebug= false }: UIHandlerProps) {
+    const {setCurrentTarget, currentTarget} = useCameraStore();
+
     const projectsTriggerDefaultColor = '#ED864A';
     const projectsTriggerScale = 2;
 
@@ -20,14 +23,22 @@ export default function UIHandler({ debug= false, uiDebug= false, onTriggerClick
     const explodeTriggerDefaultColor = '#F5E72B';
     const explodeTriggerScale = 6;
 
+    useEffect(() => {
+        console.log("[DBG] UIHandler.tsx | Current target : ", currentTarget);
+    }, [currentTarget]);
+
     return (
         <>
             <mesh
                 visible={uiDebug}
                 position={[1.1,1.5,4]}
                 scale={projectsTriggerScale}
-                onClick={() => {
-                    onTriggerClick('projects');
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentTarget('projects');
+
+                    // DEBUG
+                    // console.log("[DBG] UIHandler.tsx | Click intercepté");
                 }}
             >
                 <meshStandardMaterial
@@ -43,8 +54,12 @@ export default function UIHandler({ debug= false, uiDebug= false, onTriggerClick
                 visible={uiDebug}
                 position={[1.1,-0.5,4]}
                 scale={skillsTriggerScale}
-                onClick={() => {
-                    onTriggerClick('skills');
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentTarget('skills');
+
+                    // DEBUG
+                    // console.log("[DBG] UIHandler.tsx | Click intercepté");
                 }}
             >
                 <meshStandardMaterial
@@ -60,12 +75,16 @@ export default function UIHandler({ debug= false, uiDebug= false, onTriggerClick
                 visible={uiDebug}
                 position={[-1.1,1.5,4]}
                 scale={aboutTriggerScale}
-                onClick={() => {
-                    onTriggerClick('resume');
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentTarget('resume');
+
+                    // DEBUG
+                    // console.log("[DBG] UIHandler.tsx | Click intercepté");
                 }}
             >
                 <meshStandardMaterial
-                    color={explodeTriggerDefaultColor}
+                    color={aboutTriggerDefaultColor}
                     side={DoubleSide}
                     wireframe={debug}
                     roughness={0.5}
@@ -77,12 +96,16 @@ export default function UIHandler({ debug= false, uiDebug= false, onTriggerClick
                 visible={uiDebug}
                 position={[0,0,0.5]}
                 scale={explodeTriggerScale}
-                onClick={() => {
-                    onTriggerClick('resume');
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentTarget('explode');
+
+                    // DEBUG
+                    // console.log("[DBG] UIHandler.tsx | Click intercepté");
                 }}
             >
                 <meshStandardMaterial
-                    color={aboutTriggerDefaultColor}
+                    color={explodeTriggerDefaultColor}
                     side={DoubleSide}
                     wireframe={debug}
                     roughness={0.5}

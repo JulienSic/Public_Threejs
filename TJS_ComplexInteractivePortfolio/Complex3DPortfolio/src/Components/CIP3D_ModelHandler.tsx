@@ -291,6 +291,10 @@ export default function CIP3D_ModelHandler({ debug= false }: GIP3DModelProps) {
     useEffect(() => {
         const pane = new Pane({ title: 'Break Wall' });
 
+        if (!adminMode) {
+            return;
+        }
+
 
         pane.addBinding(animState.current, 'explosion',   {min: 0, max: 1, step: 0.01});
 

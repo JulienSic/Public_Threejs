@@ -5,33 +5,14 @@ import CIP3D_ModelHandler from "./CIP3D_ModelHandler.tsx";
 import {useCallback, useEffect, useState} from "react";
 import {Pane} from "tweakpane";
 import UIHandler from "./UIHandler.tsx";
+import CameraController from "./CameraController.tsx";
 
 
 export function Scene() {
     const [currentModel, setCurrentModel] = useState('CIP3DModelHandler');
     const [debugMode, setDebugMode] = useState(false);
     const [uiDebugMode, setUIDebugMode] = useState(false);
-    const [adminMode, setAdminMode] = useState(true);
-
-    const HandleClick = (target: string) => {
-        console.log("[DBG] Models.tsx/HandleClick | Cible Changée. Nouvelle Cible : " + target);
-        switch (target) {
-            case 'projects':
-                console.log("[DBG] Models.tsx/HandleClick | Cadrage Projets");
-                break;
-            case 'skills':
-                console.log("[DBG] Models.tsx/HandleClick | Cadrage Compétences");
-                break;
-            case 'resume':
-                console.log("[DBG] Models.tsx/HandleClick | Cadrage Introduction");
-                break;
-            case 'main':
-                console.log("[DBG] Models.tsx/HandleClick | Cadrage Scène");
-                break;
-            default:
-                console.log("[DBG] Models.tsx/HandleClick | Cible Incorrect");
-        }
-    }
+    const [adminMode, setAdminMode] = useState(false);
 
 
     useEffect(() => {
@@ -104,7 +85,7 @@ export function Scene() {
 
             {currentModel === 'CIP3DModelHandler' && (
                 <>
-                    <UIHandler onTriggerClick={HandleClick} debug={debugMode} uiDebug={uiDebugMode} />
+                    <UIHandler debug={debugMode} uiDebug={uiDebugMode} />
                     <CIP3D_ModelHandler debug={debugMode} />
                 </>
             )}
@@ -117,7 +98,7 @@ export function Scene() {
             )}
 
             {!adminMode && (
-                <PerspectiveCamera fov={75}  near={0.1} far={1000} position={[0, 0, 5]} />
+                <CameraController/>
             )}
 
             <ambientLight intensity={0.1} />
