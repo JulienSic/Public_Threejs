@@ -6,10 +6,8 @@ import {useHelper} from "@react-three/drei";
 import {VertexNormalsHelper} from "three/examples/jsm/helpers/VertexNormalsHelper";
 import {Pane} from "tweakpane";
 import gsap from "gsap";
-
-interface GIP3DModelProps {
-    debug?: boolean;
-}
+import {useModelStore} from "../store/useModelStore.ts";
+import {useAnimateStore} from "../store/useAnimateStore.ts";
 
 interface AnimatedPiece {
     target: Object3D;
@@ -36,7 +34,7 @@ const PIECE_CONFIGS = [
     { name: "Wall_Moving_Cell_15", posOffset: new Vector3(1,1,11), rotOffset: new Euler(MathUtils.degToRad(12), MathUtils.degToRad(67), MathUtils.degToRad(20)) }
 ]
 
-export default function CIP3D_ModelHandler({ debug= false }: GIP3DModelProps) {
+export default function CIP3D_ModelHandler() {
     // Importing from files
     const breakWallModel = useLoader(GLTFLoader, '/assets/models/TJS_CIP3D_Model.glb');
     const wallTextureBaseColor = useLoader(TextureLoader, '/assets/textures/CIP3D_Front.png');
@@ -46,6 +44,51 @@ export default function CIP3D_ModelHandler({ debug= false }: GIP3DModelProps) {
     const backTextureBaseColor = useLoader(TextureLoader, '/assets/textures/CIP3D_Back.png');
     backTextureBaseColor.flipY = false;
 
+    // ModelStore
+    const {debug, isAdmin} = useModelStore();
+
+    // AnimationStore
+    const isExploded = useAnimateStore((state) => state.isExploded);
+
+    useEffect(() => {
+        const windUpSpins = () => {
+            animatedPiecesRef.current.forEach((piece) => {
+
+                if (piece.continuousSpin && piece.currentSpeed) {
+                    piece.currentSpeed.copy(piece.continuousSpin).multiplyScalar(8);
+                }
+            });
+        };
+
+        const resetSpins = () => {
+            animatedPiecesRef.current.forEach((piece) => {
+                if (piece.continuousSpin && piece.currentSpeed) {
+                    piece.currentSpeed.set(0,0,0);
+                }
+            });
+        }
+
+        if (isExploded) {
+            windUpSpins()
+            animState.current.isClosing = false;
+            gsap.killTweensOf(animState.current);
+            gsap.to(animState.current, {
+                explosion: 1,
+                duration: 1.5,
+                ease: "power2.out",
+            })
+        } else {
+            resetSpins()
+            animState.current.isClosing = true;
+            gsap.killTweensOf(animState.current);
+            gsap.to(animState.current, {
+                explosion:0,
+                duration: 0.5,
+                ease: "power2.out",
+
+            })
+        }
+    }, [isExploded]);
 
     // Model Params
     const modelScale = 0.3;
@@ -54,7 +97,7 @@ export default function CIP3D_ModelHandler({ debug= false }: GIP3DModelProps) {
     // DEBUG PARAMS
     const defaultWallColor = '#392FEB';
     const defaultInsideColor = '#EBDE07';
-    const defaultBackColor = '#3AE04E'
+    const defaultBackColor = '#3AE04E';
     const defaultColor = '#F0F0F0';
 
     // Creating refs
@@ -70,6 +113,8 @@ export default function CIP3D_ModelHandler({ debug= false }: GIP3DModelProps) {
     const morphMeshesRef = useRef<Mesh[]>([]);
     const movingWallPieces = useRef<Mesh[]>([]);
     const animatedPiecesRef = useRef<AnimatedPiece[]>([]);
+
+
 
     useFrame((_state, delta) => {
         if (helperInstanceRef.current) {
@@ -142,7 +187,7 @@ export default function CIP3D_ModelHandler({ debug= false }: GIP3DModelProps) {
             if (config) {
 
                 // DEBUG
-                // console.log(`🌟 Configured Special Piece: ${child.name}`);
+                // console.log(`Configured Special Piece: ${child.name}`);
 
                 const initPos = new Vector3().copy(child.position);
                 const targetPos = new Vector3().copy(child.position).add(config.posOffset);
@@ -289,63 +334,31 @@ export default function CIP3D_ModelHandler({ debug= false }: GIP3DModelProps) {
 
     // TWEAKPANE
     useEffect(() => {
-        const pane = new Pane({ title: 'Break Wall' });
 
-        if (!adminMode) {
-            return;
+        if (isAdmin) {
+            const pane = new Pane({ title: 'Break Wall' });
+
+            const trigger = useAnimateStore.getState().triggerExplosion;
+            const reset = useAnimateStore.getState().resetExplosion;
+
+            pane.addBinding(animState.current, 'explosion',   {min: 0, max: 1, step: 0.01});
+
+            const btn = pane.addButton ({ title: 'Wall Explosion' });
+
+
+
+            btn.on('click', () => trigger())
+
+            const btnR = pane.addButton ({ title: 'Reset Explosion'});
+
+            btnR.on('click', () => reset())
+            return () => {
+                pane.dispose();
+            }
         }
 
 
-        pane.addBinding(animState.current, 'explosion',   {min: 0, max: 1, step: 0.01});
 
-        const btn = pane.addButton ({ title: 'Wall Explosion' });
-
-        const windUpSpins = () => {
-            animatedPiecesRef.current.forEach((piece) => {
-
-                if (piece.continuousSpin && piece.currentSpeed) {
-                    piece.currentSpeed.copy(piece.continuousSpin).multiplyScalar(8);
-                }
-            });
-        };
-
-        const resetSpins = () => {
-            animatedPiecesRef.current.forEach((piece) => {
-                if (piece.continuousSpin && piece.currentSpeed) {
-                    piece.currentSpeed.set(0,0,0);
-                }
-            });
-        }
-
-        btn.on('click', () => {
-            windUpSpins()
-            animState.current.isClosing = false;
-            gsap.killTweensOf(animState.current);
-            gsap.to(animState.current, {
-                explosion: 1,
-                duration: 1.5,
-                ease: "power2.out",
-                onUpdate: () => pane.refresh()
-            })
-        })
-
-        const btnR = pane.addButton ({ title: 'Reset Explosion'});
-
-        btnR.on('click', () => {
-            resetSpins()
-            animState.current.isClosing = true;
-            gsap.killTweensOf(animState.current);
-            gsap.to(animState.current, {
-                explosion:0,
-                duration: 0.5,
-                ease: "power2.out",
-                onUpdate: () => pane.refresh()
-            })
-
-        })
-        return () => {
-            pane.dispose();
-        }
     }, []);
 
     return (

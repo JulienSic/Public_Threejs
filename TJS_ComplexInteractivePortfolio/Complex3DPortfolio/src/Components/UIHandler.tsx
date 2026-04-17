@@ -1,15 +1,13 @@
 import {DoubleSide} from "three";
 import {useCameraStore} from "../store/useCameraStore.ts";
 import {useEffect} from "react";
+import {useModelStore} from "../store/useModelStore.ts";
+import {useAnimateStore} from "../store/useAnimateStore.ts";
 
-
-interface UIHandlerProps {
-    debug?: boolean;
-    uiDebug?: boolean;
-}
-
-export default function UIHandler({ debug= false, uiDebug= false }: UIHandlerProps) {
+export default function UIHandler() {
     const {setCurrentTarget, currentTarget} = useCameraStore();
+    const {debug, uiDebug} = useModelStore();
+    const {triggerExplosion, resetExplosion} = useAnimateStore();
 
     const projectsTriggerDefaultColor = '#ED864A';
     const projectsTriggerScale = 2;
@@ -98,6 +96,7 @@ export default function UIHandler({ debug= false, uiDebug= false }: UIHandlerPro
                 scale={explodeTriggerScale}
                 onClick={(e) => {
                     e.stopPropagation();
+                    triggerExplosion();
                     setCurrentTarget('explode');
 
                     // DEBUG

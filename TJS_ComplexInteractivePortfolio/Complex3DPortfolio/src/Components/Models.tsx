@@ -6,13 +6,12 @@ import {useCallback, useEffect, useState} from "react";
 import {Pane} from "tweakpane";
 import UIHandler from "./UIHandler.tsx";
 import CameraController from "./CameraController.tsx";
+import {useModelStore} from "../store/useModelStore.ts";
 
 
 export function Scene() {
-    const [currentModel, setCurrentModel] = useState('CIP3DModelHandler');
-    const [debugMode, setDebugMode] = useState(false);
-    const [uiDebugMode, setUIDebugMode] = useState(false);
-    const [adminMode, setAdminMode] = useState(false);
+
+    const {currentModel, setCurrentModel, debug, setDebug, uiDebug, setUiDebug, isAdmin, setIsAdmin} = useModelStore();
 
 
     useEffect(() => {
@@ -24,80 +23,80 @@ export function Scene() {
         container.style.width = '300px'; // Optional: fix width
         document.body.appendChild(container);
 
-        const pane = new Pane({ title: 'Scene Manager', expanded: true, container: container });
 
-        if (!adminMode) {
-            return;
+
+        if (isAdmin) {
+            const pane = new Pane({ title: 'Scene Manager', expanded: true, container: container });
+
+            const params = {
+                model: 'CIP3DModelHandler',
+                debug: false,
+                uiDebug: false,
+            }
+
+            pane.addBinding(params, 'model', {
+                options: {
+                    'Test Break Wall': 'TestBreakWall',
+                    'Break Wall': 'BreakWall',
+                    'Basic Shape': 'BasicShape',
+                    'Portfolio Full': 'CIP3DModelHandler',
+                },
+                label: 'Select Model'
+            }).on('change', (ev) => {
+                setCurrentModel(ev.value);
+            });
+
+            pane.addBinding(params, 'debug', {
+                label: 'Debug Mode',
+            }).on('change', (ev) => {
+                setDebug(ev.value)
+            });
+
+            pane.addBinding(params, 'uiDebug', {
+                label: 'UI Debug Mode',
+            }).on('change', (ev) => {
+                setUiDebug(ev.value)
+            });
+
+            return () => {
+                pane.dispose();
+                document.body.removeChild(container);
+            };
         }
 
 
-        const params = {
-            model: 'CIP3DModelHandler',
-            debug: false,
-            uiDebug: false,
-        }
 
-        pane.addBinding(params, 'model', {
-            options: {
-                'Test Break Wall': 'TestBreakWall',
-                'Break Wall': 'BreakWall',
-                'Basic Shape': 'BasicShape',
-                'Portfolio Full': 'CIP3DModelHandler',
-            },
-            label: 'Select Model'
-        }).on('change', (ev) => {
-            setCurrentModel(ev.value);
-        });
-
-        pane.addBinding(params, 'debug', {
-            label: 'Debug Mode',
-        }).on('change', (ev) => {
-            setDebugMode(ev.value)
-        });
-
-        pane.addBinding(params, 'uiDebug', {
-            label: 'UI Debug Mode',
-        }).on('change', (ev) => {
-            setUIDebugMode(ev.value)
-        });
-
-        return () => {
-            pane.dispose();
-            document.body.removeChild(container);
-        };
-    }, [adminMode]);
+    }, [isAdmin]);
 
     return (
         <group>
-            {adminMode && (
+            {isAdmin && (
                 <OrbitControls />
             )}
 
-
-
             {currentModel === 'TestBreakWall' && (
-                <TestBreakWall debug={debugMode} />
+                <TestBreakWall debug={debug} />
             )}
 
             {currentModel === 'BreakWall' && (
-                <BreakWall debug={debugMode} />
+                <BreakWall debug={debug} />
             )}
 
             {currentModel === 'CIP3DModelHandler' && (
                 <>
-                    <UIHandler debug={debugMode} uiDebug={uiDebugMode} />
-                    <CIP3D_ModelHandler debug={debugMode} />
+                    <UIHandler />
+                    <CIP3D_ModelHandler />
                 </>
             )}
 
             {currentModel === 'BasicShape' && (
                 <mesh>
                     <boxGeometry />
-                    <meshStandardMaterial color="orange" wireframe={debugMode} />
+                    <meshStandardMaterial color="orange" wireframe={debug} />
                 </mesh>
             )}
 
-            {!adminMode && (
+            {!isAdmin && (
                 <CameraController/>
             )}
 

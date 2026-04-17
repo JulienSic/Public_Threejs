@@ -9,8 +9,8 @@ export default function CameraController() {
 
     const cameraRef = useRef(null);
 
-    const cameraMainPrePosition = new Vector3(0, 0, 5);
-    const cameraMainPostPosition = new Vector3(0, 0, 10);
+    const cameraMainPrePosition = new Vector3(0, 1.3, 2);
+    const cameraMainPostPosition = new Vector3(0, 0.2, 6.5);
 
 
     useEffect(() => {
@@ -51,6 +51,7 @@ export default function CameraController() {
 
     return (
         <PerspectiveCamera
+            makeDefault
             ref={cameraRef}
             fov={75}
             near={0.1}
